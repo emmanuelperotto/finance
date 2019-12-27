@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load djmoney %}
+
+{% block content %}
+<div class="container-fluid">
+  <table class="table table-striped table-hover">
+    <thead class="thead-dark">
+      <tr>
+        <th scope="col">Ticket</th>
+        <th scope="col">Current Price</th>
+        <th scope="col">Price Cap</th>
+        <th scope="col">Rating</th>
+        <th scope="col">I Have</th>
+        <th scope="col">Ideal %</th>
+        <th scope="col">Current %</th>
+        <th scope="col">Average Price</th>
+        <th scope="col">Value Invested</th>
+        <th scope="col">Market Value</th>
+        <th scope="col">Variation</th>
+        <th scope="col">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for asset in assets %}
+        <tr>
+          <th scope="row">{{asset.ticket}}</th>
+          <td>calculando...</td>
+          <td>{% money_localize asset.price_cap %}</td>
+          <td>{{asset.rating}}</td>
+          <td>{{asset.total_quantity}}</td>
+          <td>{{asset.ideal_percentage}} %</td>
+          <td>{{asset.current_percentage}} %</td>
+          <td>{{asset.average_price}}</td>
+          <td>{{asset.value_invested}}</td>
+          <td>calculando...</td>
+          <td>calculando...</td>
+          <td>calculando...</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
