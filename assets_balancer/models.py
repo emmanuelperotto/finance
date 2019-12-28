@@ -3,6 +3,8 @@ from django.utils import timezone
 from djmoney.models.fields import MoneyField
 from djmoney.models.validators import MinMoneyValidator
 from djmoney.money import Money
+from django.dispatch import receiver
+from django.db.models.signals import pre_save
 
 class Sector(models.Model):
     # Fields
@@ -33,6 +35,13 @@ class Asset(models.Model):
                            null=True,
                            default_currency="BRL",
                            validators=[MinMoneyValidator({'BRL': 0})])
+    current_price = MoneyField(decimal_places=2,
+                               max_digits=14,
+                               null=True,
+                               blank=True,
+                               default_currency="BRL",
+                               validators=[MinMoneyValidator({'BRL': 0})])
+    current_price_updated_at = models.DateTimeField(null=True, blank=True)
 
     # Methods
     def __str__(self):
@@ -69,6 +78,36 @@ class Asset(models.Model):
             return Money(0, "BRL")
 
         return value
+
+    def market_value(self):
+        if self.total_quantity() and self.current_price:
+            return self.total_quantity() * self.current_price
+
+        return Money(0, "BRL")
+
+    def variation(self):
+        if self.value_invested() == Money(0, "BRL"):
+            return 0
+
+        percentage = ((self.market_value() - self.value_invested()) / self.value_invested()) * 100
+
+        return round(percentage, 2)
+
+    def status(self):
+        if not self.current_price or not self.price_cap:
+            return "-"
+
+        if self.current_price <= self.price_cap:
+            return "Buy"
+
+        return "Hold"
+
+    def can_update_current_price(self):
+        if not self.current_price_updated_at:
+            return True
+
+        time_diff = self.current_price_updated_at - timezone.now()
+        return (time_diff.seconds / 60.0) > (60*60)
 
     @staticmethod
     def rating_sum():
@@ -109,3 +148,14 @@ class Order(models.Model):
             return Money(0, "BRL")
 
         return value
+
+
+@receiver(pre_save, sender=Asset)
+def change_current_price_updated_at(sender, instance, **kwargs):
+    try:
+        asset = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        pass # Object is new, so field hasn't technically changed
+    else:
+        if not asset.current_price == instance.current_price: # Field has changed
+            setattr(instance, "current_price_updated_at", timezone.now())
