@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load djmoney %}
+
+{% block content %}
+<div class="container-fluid">
+  <h5>Total invested: {{total_equity}}</h5>
+  <h5>Total Market Value: {{total_market_value}}</h5>
+
+  <table class="table table-striped table-hover">
+    <thead class="thead-dark">
+      <tr>
+        <th scope="col">Ticket</th>
+        <th scope="col">Current Price</th>
+        <th scope="col">Price Cap</th>
+        <th scope="col">Rating</th>
+        <th scope="col">I Have</th>
+        <th scope="col">Ideal %</th>
+        <th scope="col">Current %</th>
+        <th scope="col">Average Price</th>
+        <th scope="col">Value Invested</th>
+        <th scope="col">Market Value</th>
+        <th scope="col">Variation</th>
+        <th scope="col">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for asset in assets %}
+        <tr id="{{asset.ticket}}" class="asset" data-should_update="{{asset.can_update_current_price}}">
+          <th scope="row">{{asset.ticket}}</th>
+          <td>
+            <p class="mb-0 current_price">{% money_localize asset.current_price %}</p>
+            <small class="current_price_updated_at">{{asset.current_price_updated_at}}</small>
+          </td>
+          <td>{% money_localize asset.price_cap %}</td>
+          <td>{{asset.rating}}</td>
+          <td>{{asset.total_quantity}}</td>
+          <td>{{asset.ideal_percentage}} %</td>
+          <td>{{asset.current_percentage}} %</td>
+          <td>{{asset.average_price}}</td>
+          <td>{{asset.value_invested}}</td>
+          <td>{{asset.market_value}}</td>
+          <td>{{asset.variation}}%</td>
+          <td class="status">{{asset.status}}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block javascript%}
+<script>
+  $(() => {
+    $(".status").each((index, item) => {
+      const status = $(item).text();
+      $(item).addClass(status === "Buy" ? "text-success" : "text-warning")
+    });
+
+    $('.asset[data-should_update="True"]').each((index, element) => {
+      const ticket  = element.id;
+      const priceElement = $(element).find(".current_price");
+      const priceUpdatedAtElement = $(element).find(".current_price_updated_at");
+
+      setTimeout(() => {
+        console.log(`REQUESTING PRICE FOR ${ticket}...`)
+        $.ajax("{% url 'update_current_price' %}", {
+          method: "POST",
+          data: {
+            ticket,
+            csrfmiddlewaretoken: "{{ csrf_token }}",
+          },
+          success: (data) => {
+            console.log(`REQUESTING PRICE FOR ${ticket}...[OK]`, data)
+            $(priceElement).text(`R$ ${data["price"]}`)
+            $(priceUpdatedAtElement).text("Updated now")
+          },
+          error: (response) => {
+            console.log(`REQUESTING PRICE FOR ${ticket}...[ERROR]`, response)
+            $(priceElement).text('Error requesting asset price')
+          }
+        });
+      }, index * 13000);
+    });
+    });
+</script>
+{% endblock %}
