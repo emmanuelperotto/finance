@@ -94,10 +94,7 @@ class Asset(models.Model):
         return round(percentage, 2)
 
     def status(self):
-        if not self.current_price or not self.price_cap:
-            return "-"
-
-        if self.current_price <= self.price_cap:
+        if self.current_percentage() <= self.ideal_percentage():
             return "Buy"
 
         return "Hold"
