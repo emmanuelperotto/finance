@@ -106,8 +106,8 @@ class Asset(models.Model):
         if not self.current_price_updated_at:
             return True
 
-        time_diff = self.current_price_updated_at - timezone.now()
-        return (time_diff.seconds / 60.0) > (60*60)
+        time_diff = timezone.now() - self.current_price_updated_at
+        return (time_diff.seconds / 60.0) > 60
 
     @staticmethod
     def rating_sum():
